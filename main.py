@@ -4,19 +4,17 @@ import joblib
 import os
 import google.generativeai as genai
 
-
 from schemas import PredictionRequest, PredictionResponse
 from utils.feature_builder import build_features
 
 # -------------------------------
-# Gemini client (optional)
+# Gemini configuration (optional)
 # -------------------------------
-# ❗ FIXED: load API key from environment variable
+# Load API key from environment variable
 GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-client = None
 if GEMINI_API_KEY:
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    genai.configure(api_key=GEMINI_API_KEY)
 
 # -------------------------------
 # FastAPI app
@@ -36,8 +34,8 @@ CONFIDENCE_R2 = 0.94
 # Gemini reasoning function
 # -------------------------------
 def generate_gemini_reasoning(prediction, category):
-    if not client:
-        raise RuntimeError("Gemini client not available")
+    if not GEMINI_API_KEY:
+        raise RuntimeError("Gemini API key not configured")
 
     prompt = f"""
     Explain today's air pollution result in simple human language.
@@ -49,10 +47,8 @@ def generate_gemini_reasoning(prediction, category):
     Avoid technical terms.
     """
 
-    response = client.models.generate_content(
-        model="gemini-1.5-pro",
-        contents=prompt
-    )
+    model_ai = genai.GenerativeModel("gemini-1.5-pro")
+    response = model_ai.generate_content(prompt)
 
     return response.text.strip()
 
@@ -85,7 +81,7 @@ def predict_pollution(request: PredictionRequest):
     else:
         category = "Severe"
 
-    # Explanation (Gemini optional)
+    # Explanation (Gemini optional with fallback)
     try:
         explanation = generate_gemini_reasoning(prediction, category)
     except Exception:
