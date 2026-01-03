@@ -10,7 +10,8 @@ from utils.feature_builder import build_features
 # -------------------------------
 # Gemini client (optional)
 # -------------------------------
-GEMINI_API_KEY = os.getenv("AIzaSyC6jR4U7W4vcPTSWwD-PiJzSwWvHACx-oY")
+# ❗ FIXED: load API key from environment variable
+GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 client = None
 if GEMINI_API_KEY:
@@ -105,7 +106,7 @@ def predict_pollution(request: PredictionRequest):
     ]
 
     # -------------------------------
-    # GRAPH 2: Contributing factors (simple & explainable)
+    # GRAPH 2: Contributing factors
     # -------------------------------
     factors = [
         {"name": "Past Pollution Levels", "impact": 0.7},
