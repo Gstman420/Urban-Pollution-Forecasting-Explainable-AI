@@ -2,7 +2,8 @@ from fastapi import FastAPI
 import pandas as pd
 import joblib
 import os
-from google import genai
+import google.generativeai as genai
+
 
 from schemas import PredictionRequest, PredictionResponse
 from utils.feature_builder import build_features
