@@ -5,6 +5,9 @@ import os
 import google.generativeai as genai
 import numpy as np
 from datetime import datetime, timedelta
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 from schemas import PredictionRequest, PredictionResponse
 from utils.feature_builder import build_features
@@ -25,6 +28,17 @@ if GEMINI_API_KEY:
 # FastAPI app
 # -------------------------------
 app = FastAPI(title="Urban Pollution Prediction API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://urban-pollution-frontend.web.app",
+        "http://localhost:58360"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # -------------------------------
 # Load model and dataset
