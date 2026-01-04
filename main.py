@@ -10,7 +10,6 @@ from utils.feature_builder import build_features
 # -------------------------------
 # Gemini configuration (optional)
 # -------------------------------
-# Load API key from environment variable
 GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 if GEMINI_API_KEY:
@@ -28,6 +27,34 @@ model = joblib.load("model/pollution_model.pkl")
 df = pd.read_csv("data/air_pollution.csv")
 
 CONFIDENCE_R2 = 0.94
+
+
+# -------------------------------
+# ✅ NEW: Region-based rule function
+# -------------------------------
+def apply_region_rules(prediction, region):
+    if region == "Rainy Area":
+        # Rain usually reduces pollution a bit
+        return prediction * 0.85
+
+    elif region == "Windy Area":
+        # Wind disperses pollution
+        return prediction * 0.90
+
+    elif region == "Normal Urban Area":
+        # No change
+        return prediction
+
+    elif region == "Seasonal Variation Area":
+        # Slight increase due to seasonal effects
+        return prediction * 1.10
+
+    elif region == "High Pollution Area":
+        # Pollution tends to be worse
+        return prediction * 1.25
+
+    return prediction
+
 
 
 # -------------------------------
@@ -71,6 +98,9 @@ def predict_pollution(request: PredictionRequest):
     X = build_features(df)
     prediction = model.predict(X)[0]
 
+    # ✅ APPLY REGION RULES HERE (NEW LINE)
+    prediction = apply_region_rules(prediction, request.location)
+
     # Category
     if prediction < 50:
         category = "Good"
@@ -92,7 +122,7 @@ def predict_pollution(request: PredictionRequest):
         )
 
     # -------------------------------
-    # GRAPH 1: Pollution trend (last 4 days + today)
+    # GRAPH 1: Pollution trend
     # -------------------------------
     trend_data = [
         {"day": "Day-4", "value": float(df["pollution_today"].iloc[-5])},
