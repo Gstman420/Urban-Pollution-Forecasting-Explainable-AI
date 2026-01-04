@@ -4,6 +4,7 @@ import joblib
 import os
 import google.generativeai as genai
 import numpy as np
+from datetime import datetime, timedelta
 
 from schemas import PredictionRequest, PredictionResponse
 from utils.feature_builder import build_features
@@ -33,8 +34,8 @@ df = pd.read_csv(os.path.join(BASE_DIR, "data", "air_pollution_2021_2025.csv"))
 df["date"] = pd.to_datetime(df["date"])
 
 CONFIDENCE_R2 = 0.94
-ANCHOR_WINDOW = 10  # days
-MAX_ADJUSTMENT = 0.30  # ±30%
+ANCHOR_WINDOW = 10
+MAX_ADJUSTMENT = 0.30
 
 # -------------------------------
 # Region-based rule
@@ -58,7 +59,7 @@ def get_anchor_window(df, target_date, window=10):
     return df.iloc[start:idx + 1]
 
 # -------------------------------
-# Adjustment logic (REAL-WORLD)
+# Adjustment logic (EXISTING)
 # -------------------------------
 def calculate_adjustment(window_df):
     avg_wind = window_df["wnd_spd"].mean()
@@ -68,26 +69,54 @@ def calculate_adjustment(window_df):
 
     adjustment = 0.0
 
-    # Rain / snow reduces AQI (moderate real-world effect)
     if total_rain > 0 or total_snow > 0:
-        adjustment -= 0.20  # −20%
-
+        adjustment -= 0.20
     else:
-        # Wind effect
         if avg_wind < 5:
             adjustment += 0.15
         elif avg_wind > 15:
             adjustment -= 0.15
 
-        # Pressure effect
         if avg_press > 1025:
             adjustment += 0.10
         elif avg_press < 1010:
             adjustment -= 0.10
 
-    # Bound adjustment
     adjustment = max(-MAX_ADJUSTMENT, min(MAX_ADJUSTMENT, adjustment))
     return adjustment
+
+# -------------------------------
+# NEW: Future AQI evolution logic
+# -------------------------------
+def apply_future_evolution(prediction, days_ahead, region):
+    """
+    Applies small, bounded AQI drift for future dates only.
+    Change happens every ~7 days.
+    """
+
+    # Number of 7-day blocks
+    steps = days_ahead // 7
+    if steps <= 0:
+        return prediction
+
+    # Base small delta (low but noticeable)
+    base_delta = 0.03  # 3% per step (small)
+
+    # Region sensitivity
+    region_multiplier = {
+        "Rainy Area": 0.8,
+        "Windy Area": 0.9,
+        "Normal Urban Area": 1.0,
+        "Seasonal Variation Area": 1.1,
+        "High Pollution Area": 1.2
+    }.get(region, 1.0)
+
+    total_delta = steps * base_delta * region_multiplier
+
+    # Safety cap: never exceed 20% future drift
+    total_delta = min(total_delta, 0.20)
+
+    return prediction * (1 + total_delta)
 
 # -------------------------------
 # Health check
@@ -126,6 +155,17 @@ def predict_pollution(request: PredictionRequest):
     prediction = apply_region_rules(adjusted_prediction, request.location)
 
     # -------------------------------
+    # NEW Step 5: Future-only evolution
+    # -------------------------------
+    today = pd.to_datetime(datetime.utcnow().date())
+    if target_date > today:
+        days_ahead = (target_date - today).days
+        if days_ahead <= 180:  # max 6 months
+            prediction = apply_future_evolution(
+                prediction, days_ahead, request.location
+            )
+
+    # -------------------------------
     # Category
     # -------------------------------
     if prediction < 50:
@@ -138,16 +178,16 @@ def predict_pollution(request: PredictionRequest):
         category = "Severe"
 
     # -------------------------------
-    # Explanation
+    # Explanation (SAFE)
     # -------------------------------
     explanation = (
         "The predicted air quality is based on recent pollution patterns and "
-        "weather conditions. Wind, rainfall, and atmospheric pressure were "
-        "considered to adjust the pollution level realistically."
+        "historical variability. For future dates, a controlled short-term "
+        "simulation is applied to avoid flat predictions."
     )
 
     # -------------------------------
-    # Trend graph
+    # Trend graph (UNCHANGED)
     # -------------------------------
     trend_data = [
         {"day": "Day-4", "value": float(df["pollution_today"].iloc[-5])},
