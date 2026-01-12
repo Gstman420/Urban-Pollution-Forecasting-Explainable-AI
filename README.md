@@ -1,28 +1,66 @@
-# Urban Pollution Prediction with Factor Attribution
+# Urban Pollution Prediction with Explainable AI
 
-This project predicts daily air pollution levels using time-series machine
-learning techniques.
+Predicts daily Air Quality Index (AQI) using historical pollution and weather data with factor-level explainability.
+
+---
+
+## Overview
+- Sensor-less AQI prediction
+- Time-series machine learning model
+- Explainable outputs for each prediction
+
+---
+
+## Data
+- Historical pollution data
+- Historical weather data
+
+---
 
 ## Model
 - Algorithm: XGBoost Regressor
-- Features: Weather data, lag features, rolling-window statistics
+- Features:
+  - Weather parameters
+  - Lag-based pollution features
+  - Rolling-window statistics
 - Validation: Time-based train/test split
+
+---
 
 ## Performance
 - R² Score: 0.94
 - MAE: 12.06
 - RMSE: 20.54
 
+---
+
 ## Explainability
-The model uses SHAP (SHapley Additive Explanations) to attribute each prediction
-to contributing factors such as recent pollution trends, wind speed, temperature,
-and atmospheric pressure.
+- Uses SHAP (SHapley Additive Explanations)
+- Identifies key contributing factors such as:
+  - Recent pollution trends
+  - Wind speed
+  - Temperature
+  - Atmospheric pressure
 
-## LLM-style Explanation
-Predictions are accompanied by a human-readable explanation describing why
-pollution levels are high or low, making the system understandable to non-technical
-users.
+---
 
-## Use Case
-Supports urban pollution monitoring and decision-making by explaining not only
-what the pollution level is, but why it occurs.
+## Prediction Flow
+1. User selects region and date  
+2. Backend processes request  
+3. Model predicts AQI  
+4. Explainability module identifies factors  
+5. Results returned to frontend  
+
+---
+
+## Use Cases
+- Urban air quality awareness
+- Pollution trend analysis
+- Decision-making in regions without monitoring infrastructure
+
+---
+
+## Future Work
+- Integration with real-time data sources
+- Support for additional regions
+- Advanced time-series models
