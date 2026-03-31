@@ -8,6 +8,7 @@ Predicts daily Air Quality Index (AQI) using historical pollution and weather da
 - Sensor-less AQI prediction
 - Time-series machine learning model
 - Explainable outputs for each prediction
+- True prediction of AQI
 
 ---
 
